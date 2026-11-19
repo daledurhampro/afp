@@ -1,0 +1,6 @@
+{
+  "cluster_arn": "arn:aws:rds:us-east-1:392340646348:cluster:afp-aurora-cluster",
+  "secret_arn": "arn:aws:secretsmanager:us-east-1:392340646348:secret:afp-aurora-data-api-credentials-aGIMlV",
+  "database": "afp",
+  "region": "us-east-1"
+}

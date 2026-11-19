@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="280" viewBox="0 0 720 280" role="img" aria-labelledby="title description">
+  <title id="title">AFP — AI Financial Planner</title>
+  <desc id="description">AFP wordmark with a rising financial chart and dollar symbol.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101c35"/>
+      <stop offset="1" stop-color="#172c48"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#39d6a0"/>
+      <stop offset="1" stop-color="#a1f2c2"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="712" height="272" rx="34" fill="url(#background)"/>
+  <circle cx="142" cy="140" r="82" fill="#203b58"/>
+  <path d="M92 181l32-36 25 18 48-57" fill="none" stroke="url(#accent)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M178 106h19v19" fill="none" stroke="url(#accent)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="142" y="159" text-anchor="middle" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="49" font-weight="700">$</text>
+  <text x="264" y="151" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="106" font-weight="800" letter-spacing="3">AFP</text>
+  <text x="272" y="196" fill="#b9c9dc" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="600" letter-spacing="3">AI FINANCIAL PLANNER</text>
+  <path d="M272 220h350" stroke="#39d6a0" stroke-width="4" stroke-linecap="round"/>
+</svg>

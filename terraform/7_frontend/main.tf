@@ -1,4 +1,4 @@
-# Part 7: Frontend & API Infrastructure
+# Stage 7: Frontend & API Infrastructure
 
 terraform {
   required_version = ">= 1.0"
@@ -19,7 +19,7 @@ data "aws_caller_identity" "current" {}
 
 data "aws_region" "current" {}
 
-# Reference Part 5 Database resources
+# Reference Stage 5 Database resources
 data "terraform_remote_state" "database" {
   backend = "local"
   config = {
@@ -27,7 +27,7 @@ data "terraform_remote_state" "database" {
   }
 }
 
-# Reference Part 6 Agents resources
+# Reference Stage 6 Agents resources
 data "terraform_remote_state" "agents" {
   backend = "local"
   config = {
@@ -204,13 +204,13 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      # Database configuration from Part 5
+      # Database configuration from Stage 5
       AURORA_CLUSTER_ARN = data.terraform_remote_state.database.outputs.aurora_cluster_arn
       AURORA_SECRET_ARN  = data.terraform_remote_state.database.outputs.aurora_secret_arn
       AURORA_DATABASE    = data.terraform_remote_state.database.outputs.database_name
       DEFAULT_AWS_REGION = var.aws_region
 
-      # SQS configuration from Part 6
+      # SQS configuration from Stage 6
       SQS_QUEUE_URL = data.terraform_remote_state.agents.outputs.sqs_queue_url
 
       # Clerk configuration for JWT validation

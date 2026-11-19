@@ -224,7 +224,7 @@ def main():
     print("✅ 22 instruments loaded with complete allocation data")
     print("✅ All allocation percentages sum to 100%")
     print("✅ Indexes and triggers are in place")
-    print("✅ Database is ready for Part 6: Agent Orchestra!")
+    print("✅ Database is ready for Stage 6: Agent Orchestra!")
 
 if __name__ == "__main__":
     main()

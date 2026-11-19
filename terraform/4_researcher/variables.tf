@@ -10,12 +10,12 @@ variable "openai_api_key" {
 }
 
 variable "afp_api_endpoint" {
-  description = "AFP API endpoint from Part 3"
+  description = "AFP API endpoint from Stage 3"
   type        = string
 }
 
 variable "afp_api_key" {
-  description = "AFP API key from Part 3"
+  description = "AFP API key from Stage 3"
   type        = string
   sensitive   = true
 }

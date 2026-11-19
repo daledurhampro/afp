@@ -29,7 +29,7 @@ from src import Database
 
 from templates import RETIREMENT_INSTRUCTIONS
 from agent import create_agent
-from observability import observe
+from observability import observe, record_output
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -130,107 +130,112 @@ def lambda_handler(event, context):
         "portfolio_data": {...}  # Optional, will load from DB if not provided
     }
     """
-    # Wrap entire handler with observability context
-    with observe() as observability:
-        try:
-            logger.info(f"Retirement Lambda invoked with event: {json.dumps(event)[:500]}")
+    with observe(event) as observability:
+        response = _handle(event, context, observability)
+        record_output(observability, response)
+        return response
 
-            # Parse event
-            if isinstance(event, str):
-                event = json.loads(event)
 
-            job_id = event.get('job_id')
-            if not job_id:
-                return {
-                    'statusCode': 400,
-                    'body': json.dumps({'error': 'job_id is required'})
-                }
+def _handle(event, context, observability):
+    try:
+        logger.info(f"Retirement Lambda invoked with event: {json.dumps(event)[:500]}")
 
-            portfolio_data = event.get('portfolio_data')
-            if not portfolio_data:
-                # Try to load from database
-                logger.info(f"Retirement Loading portfolio data for job {job_id}")
-                try:
-                    import sys
-                    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-                    from src import Database
+        # Parse event
+        if isinstance(event, str):
+            event = json.loads(event)
 
-                    db = Database()
-                    job = db.jobs.find_by_id(job_id)
-                    if job:
-                        if observability:
-                            observability.create_event(
-                                name="Retirement Started!", status_message="OK"
-                            )
-                        
-                        # portfolio_data = job.get('request_payload', {}).get('portfolio_data', {})
-                        user_id = job['clerk_user_id']
-                        user = db.users.find_by_clerk_id(user_id)
-                        accounts = db.accounts.find_by_user(user_id)
+        job_id = event.get('job_id')
+        if not job_id:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'error': 'job_id is required'})
+            }
 
-                        portfolio_data = {
-                            'user_id': user_id,
-                            'job_id': job_id,
-                            'years_until_retirement': user.get('years_until_retirement', 30) if user else 30,
-                            'accounts': []
-                        }
+        portfolio_data = event.get('portfolio_data')
+        if not portfolio_data:
+            # Try to load from database
+            logger.info(f"Retirement Loading portfolio data for job {job_id}")
+            try:
+                import sys
+                sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+                from src import Database
 
-                        for account in accounts:
-                            account_data = {
-                                'id': account['id'],
-                                'name': account['account_name'],
-                                'type': account.get('account_type', 'investment'),
-                                'cash_balance': float(account.get('cash_balance', 0)),
-                                'positions': []
-                            }
+                db = Database()
+                job = db.jobs.find_by_id(job_id)
+                if job:
+                    if observability:
+                        observability.create_event(
+                            name="Retirement Started!", status_message="OK"
+                        )
+                    
+                    # portfolio_data = job.get('request_payload', {}).get('portfolio_data', {})
+                    user_id = job['clerk_user_id']
+                    user = db.users.find_by_clerk_id(user_id)
+                    accounts = db.accounts.find_by_user(user_id)
 
-                            positions = db.positions.find_by_account(account['id'])
-                            for position in positions:
-                                instrument = db.instruments.find_by_symbol(position['symbol'])
-                                if instrument:
-                                    account_data['positions'].append({
-                                        'symbol': position['symbol'],
-                                        'quantity': float(position['quantity']),
-                                        'instrument': instrument
-                                    })
-
-                            portfolio_data['accounts'].append(account_data)
-
-                        logger.info(f"Retirement: Loaded {len(portfolio_data['accounts'])} accounts with positions")
-                    else:
-                        logger.error(f"Retirement: Job {job_id} not found")
-                        return {
-                            'statusCode': 404,
-                            'body': json.dumps({'error': f'Job {job_id} not found'})
-                        }
-                except Exception as e:
-                    logger.error(f"Could not load portfolio from database: {e}")
-                    return {
-                        'statusCode': 400,
-                        'body': json.dumps({'error': 'No portfolio data provided'})
+                    portfolio_data = {
+                        'user_id': user_id,
+                        'job_id': job_id,
+                        'years_until_retirement': user.get('years_until_retirement', 30) if user else 30,
+                        'accounts': []
                     }
 
-            logger.info(f"Retirement: Processing job {job_id}")
+                    for account in accounts:
+                        account_data = {
+                            'id': account['id'],
+                            'name': account['account_name'],
+                            'type': account.get('account_type', 'investment'),
+                            'cash_balance': float(account.get('cash_balance', 0)),
+                            'positions': []
+                        }
 
-            # Run the agent
-            result = asyncio.run(run_retirement_agent(job_id, portfolio_data))
+                        positions = db.positions.find_by_account(account['id'])
+                        for position in positions:
+                            instrument = db.instruments.find_by_symbol(position['symbol'])
+                            if instrument:
+                                account_data['positions'].append({
+                                    'symbol': position['symbol'],
+                                    'quantity': float(position['quantity']),
+                                    'instrument': instrument
+                                })
 
-            logger.info(f"Retirement completed for job {job_id}")
+                        portfolio_data['accounts'].append(account_data)
 
-            return {
-                'statusCode': 200,
-                'body': json.dumps(result)
-            }
+                    logger.info(f"Retirement: Loaded {len(portfolio_data['accounts'])} accounts with positions")
+                else:
+                    logger.error(f"Retirement: Job {job_id} not found")
+                    return {
+                        'statusCode': 404,
+                        'body': json.dumps({'error': f'Job {job_id} not found'})
+                    }
+            except Exception as e:
+                logger.error(f"Could not load portfolio from database: {e}")
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({'error': 'No portfolio data provided'})
+                }
 
-        except Exception as e:
-            logger.error(f"Error in retirement: {e}", exc_info=True)
-            return {
-                'statusCode': 500,
-                'body': json.dumps({
-                    'success': False,
-                    'error': str(e)
-                })
-            }
+        logger.info(f"Retirement: Processing job {job_id}")
+
+        # Run the agent
+        result = asyncio.run(run_retirement_agent(job_id, portfolio_data))
+
+        logger.info(f"Retirement completed for job {job_id}")
+
+        return {
+            'statusCode': 200,
+            'body': json.dumps(result)
+        }
+
+    except Exception as e:
+        logger.error(f"Error in retirement: {e}", exc_info=True)
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'success': False,
+                'error': str(e)
+            })
+        }
 
 # For local testing
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-# Part 8: Enterprise - CloudWatch Dashboards for Monitoring
+# Stage 8: Enterprise - CloudWatch Dashboards for Monitoring
 
 terraform {
   required_version = ">= 1.0"

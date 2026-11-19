@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Destroy the AFP AI Financial Planner Part 7 infrastructure.
+Destroy the AFP AI Financial Planner Stage 7 infrastructure.
 This script:
 1. Empties the S3 bucket
 2. Destroys infrastructure with Terraform
@@ -32,7 +32,7 @@ def run_command(cmd, cwd=None, check=True, capture_output=False):
 
 def confirm_destruction():
     """Ask for confirmation before destroying resources."""
-    print("⚠️  WARNING: This will destroy all Part 7 infrastructure!")
+    print("⚠️  WARNING: This will destroy all Stage 7 infrastructure!")
     print("This includes:")
     print("  - CloudFront distribution")
     print("  - API Gateway")
@@ -156,7 +156,7 @@ def clean_local_artifacts():
 
 def main():
     """Main destruction function."""
-    print("💥 AFP AI Financial Planner - Part 7 Infrastructure Destruction")
+    print("💥 AFP AI Financial Planner - Stage 7 Infrastructure Destruction")
     print("=" * 60)
 
     # Confirm destruction

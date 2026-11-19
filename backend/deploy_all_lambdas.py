@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Deploy all Part 6 Lambda functions to AWS using Terraform.
+Deploy all Stage 6 Lambda functions to AWS using Terraform.
 This script ensures Lambda functions are properly updated by:
 1. Optionally packaging the Lambda functions
 2. Tainting Lambda resources in Terraform to force recreation

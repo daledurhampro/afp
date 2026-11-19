@@ -4,17 +4,17 @@ variable "aws_region" {
 }
 
 variable "aurora_cluster_arn" {
-  description = "ARN of the Aurora cluster from Part 5"
+  description = "ARN of the Aurora cluster from Stage 5"
   type        = string
 }
 
 variable "aurora_secret_arn" {
-  description = "ARN of the Secrets Manager secret from Part 5"
+  description = "ARN of the Secrets Manager secret from Stage 5"
   type        = string
 }
 
 variable "vector_bucket" {
-  description = "S3 Vectors bucket name from Part 3"
+  description = "S3 Vectors bucket name from Stage 3"
   type        = string
 }
 
@@ -29,7 +29,7 @@ variable "bedrock_region" {
 }
 
 variable "sagemaker_endpoint" {
-  description = "SageMaker endpoint name from Part 2"
+  description = "SageMaker endpoint name from Stage 2"
   type        = string
   default     = "afp-embedding-endpoint"
 }

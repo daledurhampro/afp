@@ -12,7 +12,7 @@ from typing import List, Dict, Any
 from src import Database
 from src.schemas import InstrumentCreate
 from agent import tag_instruments, classification_to_db_format
-from observability import observe
+from observability import observe, record_output
 
 # Configure logging
 logger = logging.getLogger()
@@ -105,29 +105,34 @@ def lambda_handler(event, context):
         ]
     }
     """
-    # Wrap entire handler with observability context
-    with observe():
-        try:
-            # Parse the event
-            instruments = event.get('instruments', [])
+    with observe(event) as observability:
+        response = _handle(event, context, observability)
+        record_output(observability, response)
+        return response
 
-            if not instruments:
-                return {
-                    'statusCode': 400,
-                    'body': json.dumps({'error': 'No instruments provided'})
-                }
 
-            # Process all instruments in a single async context
-            result = asyncio.run(process_instruments(instruments))
+def _handle(event, context, observability):
+    try:
+        # Parse the event
+        instruments = event.get('instruments', [])
 
+        if not instruments:
             return {
-                'statusCode': 200,
-                'body': json.dumps(result)
+                'statusCode': 400,
+                'body': json.dumps({'error': 'No instruments provided'})
             }
 
-        except Exception as e:
-            logger.error(f"Lambda handler error: {e}")
-            return {
-                'statusCode': 500,
-                'body': json.dumps({'error': str(e)})
-            }
+        # Process all instruments in a single async context
+        result = asyncio.run(process_instruments(instruments))
+
+        return {
+            'statusCode': 200,
+            'body': json.dumps(result)
+        }
+
+    except Exception as e:
+        logger.error(f"Lambda handler error: {e}")
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': str(e)})
+        }

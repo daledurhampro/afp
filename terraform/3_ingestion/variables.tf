@@ -4,6 +4,6 @@ variable "aws_region" {
 }
 
 variable "sagemaker_endpoint_name" {
-  description = "Name of the SageMaker endpoint from Part 2"
+  description = "Name of the SageMaker endpoint from Stage 2"
   type        = string
 }

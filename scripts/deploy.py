@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Deploy the AFP AI Financial Planner Part 7 infrastructure.
+Deploy the AFP AI Financial Planner Stage 7 infrastructure.
 This script:
 1. Packages the Lambda function
 2. Deploys infrastructure with Terraform to get API URL
@@ -335,7 +335,7 @@ def display_deployment_info(outputs):
 
 def main():
     """Main deployment function."""
-    print("🚀 AFP AI Financial Planner - Part 7 Deployment")
+    print("🚀 AFP AI Financial Planner - Stage 7 Deployment")
     print("=" * 50)
 
     # Check prerequisites

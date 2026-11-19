@@ -23,7 +23,7 @@ from src import Database
 
 from templates import CHARTER_INSTRUCTIONS
 from agent import create_agent
-from observability import observe
+from observability import observe, record_output
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -134,99 +134,104 @@ def lambda_handler(event, context):
         "portfolio_data": {...}
     }
     """
-    # Wrap entire handler with observability context
-    with observe():
-        try:
-            logger.info(f"Charter Lambda invoked with event keys: {list(event.keys()) if isinstance(event, dict) else 'not a dict'}")
+    with observe(event) as observability:
+        response = _handle(event, context, observability)
+        record_output(observability, response)
+        return response
 
-            # Parse event
-            if isinstance(event, str):
-                event = json.loads(event)
 
-            job_id = event.get('job_id')
-            if not job_id:
-                return {
-                    'statusCode': 400,
-                    'body': json.dumps({'error': 'job_id is required'})
-                }
+def _handle(event, context, observability):
+    try:
+        logger.info(f"Charter Lambda invoked with event keys: {list(event.keys()) if isinstance(event, dict) else 'not a dict'}")
 
-            # Initialize database first
-            db = Database()
+        # Parse event
+        if isinstance(event, str):
+            event = json.loads(event)
 
-            portfolio_data = event.get('portfolio_data')
-            if not portfolio_data:
-                # Load portfolio data from database (like Reporter does)
-                logger.info(f"Charter: Loading portfolio data for job {job_id}")
-                try:
-                    job = db.jobs.find_by_id(job_id)
-                    if job:
-                        user_id = job['clerk_user_id']
-                        user = db.users.find_by_clerk_id(user_id)
-                        accounts = db.accounts.find_by_user(user_id)
+        job_id = event.get('job_id')
+        if not job_id:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'error': 'job_id is required'})
+            }
 
-                        portfolio_data = {
-                            'user_id': user_id,
-                            'job_id': job_id,
-                            'years_until_retirement': user.get('years_until_retirement', 30) if user else 30,
-                            'accounts': []
-                        }
+        # Initialize database first
+        db = Database()
 
-                        for account in accounts:
-                            account_data = {
-                                'id': account['id'],
-                                'name': account['account_name'],
-                                'type': account.get('account_type', 'investment'),
-                                'cash_balance': float(account.get('cash_balance', 0)),
-                                'positions': []
-                            }
+        portfolio_data = event.get('portfolio_data')
+        if not portfolio_data:
+            # Load portfolio data from database (like Reporter does)
+            logger.info(f"Charter: Loading portfolio data for job {job_id}")
+            try:
+                job = db.jobs.find_by_id(job_id)
+                if job:
+                    user_id = job['clerk_user_id']
+                    user = db.users.find_by_clerk_id(user_id)
+                    accounts = db.accounts.find_by_user(user_id)
 
-                            positions = db.positions.find_by_account(account['id'])
-                            for position in positions:
-                                instrument = db.instruments.find_by_symbol(position['symbol'])
-                                if instrument:
-                                    account_data['positions'].append({
-                                        'symbol': position['symbol'],
-                                        'quantity': float(position['quantity']),
-                                        'instrument': instrument
-                                    })
-
-                            portfolio_data['accounts'].append(account_data)
-
-                        logger.info(f"Charter: Loaded {len(portfolio_data['accounts'])} accounts with positions")
-                    else:
-                        logger.error(f"Charter: Job {job_id} not found")
-                        return {
-                            'statusCode': 404,
-                            'body': json.dumps({'error': 'Job not found'})
-                        }
-                except Exception as e:
-                    logger.error(f"Charter: Error loading portfolio data: {e}")
-                    return {
-                        'statusCode': 500,
-                        'body': json.dumps({'error': f'Failed to load portfolio data: {str(e)}'})
+                    portfolio_data = {
+                        'user_id': user_id,
+                        'job_id': job_id,
+                        'years_until_retirement': user.get('years_until_retirement', 30) if user else 30,
+                        'accounts': []
                     }
 
-            logger.info(f"Charter: Processing job {job_id}")
+                    for account in accounts:
+                        account_data = {
+                            'id': account['id'],
+                            'name': account['account_name'],
+                            'type': account.get('account_type', 'investment'),
+                            'cash_balance': float(account.get('cash_balance', 0)),
+                            'positions': []
+                        }
 
-            # Run the agent
-            result = asyncio.run(run_charter_agent(job_id, portfolio_data, db))
+                        positions = db.positions.find_by_account(account['id'])
+                        for position in positions:
+                            instrument = db.instruments.find_by_symbol(position['symbol'])
+                            if instrument:
+                                account_data['positions'].append({
+                                    'symbol': position['symbol'],
+                                    'quantity': float(position['quantity']),
+                                    'instrument': instrument
+                                })
 
-            logger.info(f"Charter completed for job {job_id}: {result}")
+                        portfolio_data['accounts'].append(account_data)
 
-            return {
-                'statusCode': 200,
-                'body': json.dumps(result)
-            }
+                    logger.info(f"Charter: Loaded {len(portfolio_data['accounts'])} accounts with positions")
+                else:
+                    logger.error(f"Charter: Job {job_id} not found")
+                    return {
+                        'statusCode': 404,
+                        'body': json.dumps({'error': 'Job not found'})
+                    }
+            except Exception as e:
+                logger.error(f"Charter: Error loading portfolio data: {e}")
+                return {
+                    'statusCode': 500,
+                    'body': json.dumps({'error': f'Failed to load portfolio data: {str(e)}'})
+                }
 
-        except Exception as e:
-            logger.error(f"Error in charter: {e}", exc_info=True)
-            return {
-                'statusCode': 500,
-                'body': json.dumps({
-                    'success': False,
-                    'error': str(e)
-                })
-            }
+        logger.info(f"Charter: Processing job {job_id}")
+
+        # Run the agent
+        result = asyncio.run(run_charter_agent(job_id, portfolio_data, db))
+
+        logger.info(f"Charter completed for job {job_id}: {result}")
+
+        return {
+            'statusCode': 200,
+            'body': json.dumps(result)
+        }
+
+    except Exception as e:
+        logger.error(f"Error in charter: {e}", exc_info=True)
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'success': False,
+                'error': str(e)
+            })
+        }
 
 # For local testing
 if __name__ == "__main__":
